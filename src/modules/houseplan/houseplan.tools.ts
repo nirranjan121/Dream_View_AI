@@ -35,11 +35,12 @@ export class HouseplanTools {
   ) {
     let base64Image = input.planImageBase64 || '';
     if (!base64Image && input.filePath) {
+      const trimmedPath = input.filePath.trim();
       try {
-        const fileBuffer = fs.readFileSync(input.filePath);
+        const fileBuffer = fs.readFileSync(trimmedPath);
         base64Image = fileBuffer.toString('base64');
       } catch (err) {
-        throw new Error(`Failed to read file at ${input.filePath}: ${err}`);
+        throw new Error(`Failed to read file at ${trimmedPath}: ${err}`);
       }
     }
     if (!base64Image) {
