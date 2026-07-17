@@ -51,13 +51,45 @@ export interface HouseViewerProps {
   chatHistory?: { role: 'user' | 'model' | 'assistant'; content: string }[];
 }
 
+const MOCK_FALLBACK_ROOMS = [
+  {
+    id: 'room_1',
+    name: 'Living Room',
+    polygon: [{ x: 0, y: 0 }, { x: 8, y: 0 }, { x: 8, y: 6 }, { x: 0, y: 6 }],
+    wallHeightM: 3
+  },
+  {
+    id: 'room_2',
+    name: 'Kitchen',
+    polygon: [{ x: 8, y: 0 }, { x: 12, y: 0 }, { x: 12, y: 4 }, { x: 8, y: 4 }],
+    wallHeightM: 3
+  },
+  {
+    id: 'room_3',
+    name: 'Master Bedroom',
+    polygon: [{ x: 0, y: 6 }, { x: 6, y: 6 }, { x: 6, y: 11 }, { x: 0, y: 11 }],
+    wallHeightM: 3
+  },
+  {
+    id: 'room_4',
+    name: 'Bathroom',
+    polygon: [{ x: 6, y: 6 }, { x: 12, y: 6 }, { x: 12, y: 11 }, { x: 6, y: 11 }],
+    wallHeightM: 3
+  }
+];
+
 export default function HouseViewer(props: any) {
   // Use the widget SDK to get real-time tool output and call tools
   const sdkData = useWidgetSDK();
   const typedProps = (props ?? {}) as HouseViewerProps;
-  const output = (sdkData.toolOutput || typedProps) as HouseViewerProps;
 
-  const rooms = output.geometry ?? output.rooms ?? [];
+  // Extract normalized output data (unwraps structuredContent and parses JSON string arrays automatically)
+  const parsedOutput = sdkData.getToolOutput() as HouseViewerProps | null;
+  const output = (parsedOutput || typedProps) as HouseViewerProps;
+
+  // If we are not running inside NitroStudio (standalone mode), use mock fallback rooms for developer preview
+  const isStandalone = typeof window !== 'undefined' && !sdkData.isReady;
+  const rooms = output.geometry ?? output.rooms ?? (isStandalone ? MOCK_FALLBACK_ROOMS : []);
   const containerRef = useRef<HTMLDivElement>(null);
   const sceneRef = useRef<SceneHandle | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
