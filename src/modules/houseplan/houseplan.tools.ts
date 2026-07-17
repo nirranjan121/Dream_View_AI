@@ -1,10 +1,10 @@
-// src/modules/houseplan/houseplan.tools.ts
 import { ToolDecorator as Tool, Widget, z, ExecutionContext, ControllerDecorator } from '@nitrostack/core';
 import { HouseplanState, HouseModel } from './houseplan.state.js';
 import { extractRoomsFromPlanImage, shoelaceAreaSqM } from './houseplan.vision.js';
 import { resolveCityTier, getRateRangeInrPerSqft, QualityTier } from './houseplan.rates.js';
 import { DesignAgent } from './agent/design-agent.js';
 import { lookupMaterial } from './materials/material-catalog.js';
+import fs from 'fs';
 
 @ControllerDecorator()
 export class HouseplanTools {
@@ -21,18 +21,31 @@ export class HouseplanTools {
     name: 'generate_3d_shell',
     description:
       'Extract rooms/walls from an uploaded 2D floor plan image and generate a basic ' +
-      'extruded 3D shell (walls, floor, no furniture/MEP). Returns geometry + total area.',
+      'extruded 3D shell. Provide either planImageBase64 or filePath.',
     inputSchema: z.object({
-      planImageBase64: z.string().describe('Base64-encoded floor plan image (PNG/JPG)'),
+      planImageBase64: z.string().optional().describe('Base64-encoded floor plan image (PNG/JPG)'),
+      filePath: z.string().optional().describe('Absolute file path to the floor plan image on your local machine'),
       floorHeightM: z.number().min(2).max(5).default(3).describe('Wall height in meters')
     })
   })
   @Widget('house-3d-viewer')
   async generateShell(
-    input: { planImageBase64: string; floorHeightM: number },
+    input: { planImageBase64?: string; filePath?: string; floorHeightM: number },
     _ctx: ExecutionContext
   ) {
-    const rooms = await extractRoomsFromPlanImage(input.planImageBase64);
+    let base64Image = input.planImageBase64 || '';
+    if (!base64Image && input.filePath) {
+      try {
+        const fileBuffer = fs.readFileSync(input.filePath);
+        base64Image = fileBuffer.toString('base64');
+      } catch (err) {
+        throw new Error(`Failed to read file at ${input.filePath}: ${err}`);
+      }
+    }
+    if (!base64Image) {
+      throw new Error('You must provide either planImageBase64 or filePath');
+    }
+    const rooms = await extractRoomsFromPlanImage(base64Image);
     const totalFloorAreaSqM = rooms.reduce(
       (sum, r) => sum + shoelaceAreaSqM(r.polygon),
       0
