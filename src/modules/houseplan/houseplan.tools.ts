@@ -1,4 +1,4 @@
-import { ToolDecorator as Tool, Widget, z, ExecutionContext, ControllerDecorator } from '@nitrostack/core';
+import { ToolDecorator as Tool, Widget, z, ExecutionContext, Injectable } from '@nitrostack/core';
 import { HouseplanState, HouseModel } from './houseplan.state.js';
 import { extractRoomsFromPlanImage, shoelaceAreaSqM } from './houseplan.vision.js';
 import { resolveCityTier, getRateRangeInrPerSqft, QualityTier } from './houseplan.rates.js';
@@ -7,7 +7,7 @@ import { lookupMaterial } from './materials/material-catalog.js';
 import fs from 'fs';
 import path from 'path';
 
-@ControllerDecorator()
+@Injectable({ deps: [HouseplanState] })
 export class HouseplanTools {
   private readonly designAgent: DesignAgent;
 

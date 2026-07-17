@@ -2,6 +2,27 @@
 import { RoomShape } from './houseplan.state.js';
 import { spawn } from 'child_process';
 import path from 'path';
+import fs from 'fs';
+
+/**
+ * Searches candidate absolute paths to locate the correct python3 executable
+ * in the user's environment.
+ */
+function getPythonExecutable(): string {
+  const candidatePaths = [
+    '/Users/nirranjannaarayanmr/.pyenv/shims/python3',
+    '/Users/nirranjannaarayanmr/.pyenv/versions/3.10.13/bin/python3',
+    '/opt/homebrew/bin/python3',
+    '/usr/local/bin/python3',
+    '/usr/bin/python3'
+  ];
+  for (const p of candidatePaths) {
+    if (fs.existsSync(p)) {
+      return p;
+    }
+  }
+  return 'python3';
+}
 
 /**
  * Extracts room polygons and dimensions from a 2D floor plan image using OpenCV.
@@ -20,10 +41,20 @@ export async function extractRoomsFromPlanImage(
       'extract_plan.py'
     );
 
-    const py = spawn('python3', [scriptPath]);
+    const pythonExe = getPythonExecutable();
+    const py = spawn(pythonExe, [scriptPath]);
 
     let stdoutData = '';
     let stderrData = '';
+
+    // Prevent write EPIPE errors from crashing the main Node.js process if spawn fails
+    py.stdin.on('error', (err) => {
+      console.error('Child process stdin error:', err);
+    });
+
+    py.on('error', (err) => {
+      reject(new Error(`Failed to start Python process (${pythonExe}): ${err.message}`));
+    });
 
     py.stdout.on('data', (data) => {
       stdoutData += data.toString();
@@ -51,9 +82,12 @@ export async function extractRoomsFromPlanImage(
       }
     });
 
-    // Write base64 string to stdin and close the stream
-    py.stdin.write(imageBase64);
-    py.stdin.end();
+    try {
+      py.stdin.write(imageBase64);
+      py.stdin.end();
+    } catch (err) {
+      reject(new Error(`Failed to write to Python process stdin: ${err}`));
+    }
   });
 }
 
@@ -66,4 +100,5 @@ export function shoelaceAreaSqM(polygon: { x: number; y: number }[]): number {
   }
   return Math.abs(area) / 2;
 }
+
 
