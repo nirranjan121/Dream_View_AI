@@ -87,8 +87,13 @@ export default function HouseViewer(props: any) {
   const parsedOutput = sdkData.getToolOutput() as HouseViewerProps | null;
   const output = (parsedOutput || typedProps) as HouseViewerProps;
 
+  const [isMounted, setIsMounted] = useState(false);
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
   // If we are not running inside NitroStudio (standalone mode), use mock fallback rooms for developer preview
-  const isStandalone = typeof window !== 'undefined' && !sdkData.isReady;
+  const isStandalone = isMounted && !sdkData.isReady;
   const rooms = output.geometry ?? output.rooms ?? (isStandalone ? MOCK_FALLBACK_ROOMS : []);
   const containerRef = useRef<HTMLDivElement>(null);
   const sceneRef = useRef<SceneHandle | null>(null);
