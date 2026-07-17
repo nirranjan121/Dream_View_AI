@@ -5,6 +5,7 @@ import { resolveCityTier, getRateRangeInrPerSqft, QualityTier } from './housepla
 import { DesignAgent } from './agent/design-agent.js';
 import { lookupMaterial } from './materials/material-catalog.js';
 import fs from 'fs';
+import path from 'path';
 
 @ControllerDecorator()
 export class HouseplanTools {
@@ -24,7 +25,7 @@ export class HouseplanTools {
       'extruded 3D shell. Provide either planImageBase64 or filePath.',
     inputSchema: z.object({
       planImageBase64: z.string().optional().describe('Base64-encoded floor plan image (PNG/JPG)'),
-      filePath: z.string().optional().describe('Absolute file path to the floor plan image on your local machine'),
+      filePath: z.string().optional().describe('Absolute or relative file path to the floor plan image'),
       floorHeightM: z.number().min(2).max(5).default(3).describe('Wall height in meters')
     })
   })
@@ -36,11 +37,15 @@ export class HouseplanTools {
     let base64Image = input.planImageBase64 || '';
     if (!base64Image && input.filePath) {
       const trimmedPath = input.filePath.trim();
+      let resolvedPath = trimmedPath;
+      if (!fs.existsSync(resolvedPath)) {
+        resolvedPath = path.resolve(process.cwd(), trimmedPath);
+      }
       try {
-        const fileBuffer = fs.readFileSync(trimmedPath);
+        const fileBuffer = fs.readFileSync(resolvedPath);
         base64Image = fileBuffer.toString('base64');
       } catch (err) {
-        throw new Error(`Failed to read file at ${trimmedPath}: ${err}`);
+        throw new Error(`Failed to read file at ${trimmedPath} (resolved as ${resolvedPath}): ${err}`);
       }
     }
     if (!base64Image) {
