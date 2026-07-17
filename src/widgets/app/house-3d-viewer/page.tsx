@@ -51,10 +51,11 @@ export interface HouseViewerProps {
   chatHistory?: { role: 'user' | 'model' | 'assistant'; content: string }[];
 }
 
-export default function HouseViewer(props: HouseViewerProps) {
+export default function HouseViewer(props: any) {
   // Use the widget SDK to get real-time tool output and call tools
   const sdkData = useWidgetSDK();
-  const output = (sdkData.toolOutput || props) as HouseViewerProps;
+  const typedProps = (props ?? {}) as HouseViewerProps;
+  const output = (sdkData.toolOutput || typedProps) as HouseViewerProps;
 
   const rooms = output.geometry ?? output.rooms ?? [];
   const containerRef = useRef<HTMLDivElement>(null);
