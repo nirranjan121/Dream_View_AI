@@ -89,46 +89,7 @@ export class HouseplanTools {
     };
   }
 
-  // ---------------------------------------------------------------------
-  // 2. edit_material (legacy — kept for backward compat)
-  // ---------------------------------------------------------------------
-  @Tool({
-    name: 'edit_material',
-    description:
-      "Change wall color or floor material via a natural language command, e.g. " +
-      "\"make the living room walls sage green\" or \"change the floor to oak wood\". " +
-      'Geometry is not modified — this only changes surface appearance.',
-    inputSchema: z.object({
-      command: z.string().describe('Natural language description of the desired change'),
-      // Kept simple/deterministic for the MVP: caller (or an upstream LLM step)
-      // resolves the command into a target + value. Swap for a real NLU/LLM
-      // call here once the deterministic path is working end-to-end.
-      target: z.enum(['wall', 'floor']).describe('Which surface to change'),
-      value: z.string().describe('New color (hex or name) or material name')
-    })
-  })
-  @Widget('house-3d-viewer')
-  async editMaterial(
-    input: { command: string; target: 'wall' | 'floor'; value: string },
-    _ctx: ExecutionContext
-  ) {
-    const model = this.state.get();
 
-    if (input.target === 'wall') {
-      model.materials.wallColor = input.value;
-    } else {
-      model.materials.floorMaterial = input.value;
-    }
-    this.state.set(model);
-
-    return {
-      planId: model.planId,
-      appliedCommand: input.command,
-      materials: model.materials,
-      roomMaterials: model.roomMaterials,
-      geometry: model.rooms
-    };
-  }
 
   // ---------------------------------------------------------------------
   // 3. design_modify (NEW — AI-powered agent)
